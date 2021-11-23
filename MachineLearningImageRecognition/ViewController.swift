@@ -46,6 +46,44 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
     
     func recognizeImage(image: CIImage){
         
+        //proje içindeki MobileNetV2 modelini projeye dahil edip, bir değişkene atıyoruz
+        if let model =  try? VNCoreMLModel(for: MobileNetV2().model){
+            
+            
+            //REQUEST
+            let request = VNCoreMLRequest(model: model) { (vnRequest, error) in
+                //görsel analizinin isteğinin sonucunda üretilen sınıflandırma
+                //en yüksek olasılıklı sonucu almak için ilk sonucu alacağız bunun için de VNClassificationObservation sınıfını kullanıyoruz
+                //sınıflandırma görseli dizisini bizimle paylaşan sınıf
+                if let results = vnRequest.results as? [VNClassificationObservation]{
+                    if results.count > 0 {
+                        let topResult = results.first
+                        
+                        //kullanıcıya göstereceğimiz işlemleri yazıyoruz
+                        //kullanıcının arayüzüyle ilgili işlemler yapıyoruz ve bunu main'de yapmalıyız
+                        DispatchQueue.main.async {
+                            //yüzdelik olarak yazdırma işlemi
+                            let confidenceLevel = (topResult?.confidence ?? 0) * 100
+                            let rounded = Int(confidenceLevel * 100) / 100
+                            self.resultLbl.text = "\(rounded)% it's \(topResult!.identifier)"
+                            
+                        }
+                    }
+                }
+            }
+            
+            //HANDLER
+            let handler = VNImageRequestHandler(ciImage: image)
+            DispatchQueue.global(qos: .userInteractive).async {
+                do{
+                    try handler.perform([request])
+                } catch{
+                    print("error")
+                }
+            }
+
+        }
+        
     }
     
 }
